@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "700172917073",
+    "project_id": "rdx-zone",
+    "storage_bucket": "rdx-zone.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:700172917073:android:b7faa83b916192bd141b70",
+        "android_client_info": {
+          "package_name": "com.digitaloperaocean.webviewcode"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyA5BRJ1KQS-Ms72rOn7DQlvyxAOkxrwOH0"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
