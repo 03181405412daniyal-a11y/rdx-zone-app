@@ -7,12 +7,11 @@ import android.content.Context;
 import android.content.pm.PackageManager;
 import android.os.Build;
 import android.os.Bundle;
-import android.widget.Toast;
-
 import android.webkit.CookieManager;
 import android.webkit.WebSettings;
 import android.webkit.WebView;
 import android.webkit.WebViewClient;
+import android.widget.Toast;
 
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.app.ActivityCompat;
@@ -20,9 +19,13 @@ import androidx.core.content.ContextCompat;
 
 import com.google.firebase.messaging.FirebaseMessaging;
 
+import org.json.JSONObject;
+
 public class MainActivity extends AppCompatActivity {
 
     private WebView webView;
+
+    private String fcmToken = "";
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -41,7 +44,23 @@ public class MainActivity extends AppCompatActivity {
 
         CookieManager.getInstance().setAcceptCookie(true);
 
-        webView.setWebViewClient(new WebViewClient());
+        webView.setWebViewClient(new WebViewClient() {
+
+            @Override
+            public void onPageFinished(
+                    WebView view,
+                    String url
+            ) {
+                super.onPageFinished(view, url);
+
+                /*
+                 * Page load ہونے کے بعد token
+                 * logged-in PHP session کے ساتھ save ہوگا۔
+                 */
+
+                saveTokenToWebsite();
+            }
+        });
 
         webView.loadUrl("https://rdxzone.xo.je/");
 
@@ -50,49 +69,132 @@ public class MainActivity extends AppCompatActivity {
         getFirebaseToken();
     }
 
+
+    /*
+    |--------------------------------------------------------------------------
+    | GET FIREBASE FCM TOKEN
+    |--------------------------------------------------------------------------
+    */
+
     private void getFirebaseToken() {
 
-        FirebaseMessaging.getInstance().getToken()
+        FirebaseMessaging.getInstance()
+                .getToken()
                 .addOnCompleteListener(task -> {
 
                     if (!task.isSuccessful()) {
+
                         Toast.makeText(
                                 this,
                                 "Firebase Token Failed",
                                 Toast.LENGTH_LONG
                         ).show();
+
                         return;
                     }
 
-                    String token = task.getResult();
+                    fcmToken = task.getResult();
+
+                    /*
+                     * پہلے والا clipboard test برقرار رکھا ہے۔
+                     */
 
                     ClipboardManager clipboard =
-                            (ClipboardManager) getSystemService(
-                                    Context.CLIPBOARD_SERVICE
-                            );
+                            (ClipboardManager)
+                                    getSystemService(
+                                            Context.CLIPBOARD_SERVICE
+                                    );
 
-                    ClipData clip = ClipData.newPlainText(
-                            "FCM Token",
-                            token
-                    );
+                    ClipData clip =
+                            ClipData.newPlainText(
+                                    "FCM Token",
+                                    fcmToken
+                            );
 
                     clipboard.setPrimaryClip(clip);
 
                     Toast.makeText(
                             this,
-                            "FCM Token copied to clipboard",
+                            "FCM Token received",
                             Toast.LENGTH_LONG
                     ).show();
+
+                    /*
+                     * اگر website پہلے ہی load ہو چکی ہے
+                     * تو token فوراً save کرنے کی کوشش کریں۔
+                     */
+
+                    saveTokenToWebsite();
                 });
     }
 
+
+    /*
+    |--------------------------------------------------------------------------
+    | SAVE TOKEN TO PHP / DATABASE
+    |--------------------------------------------------------------------------
+    */
+
+    private void saveTokenToWebsite() {
+
+        if (fcmToken == null || fcmToken.trim().isEmpty()) {
+            return;
+        }
+
+        if (webView == null) {
+            return;
+        }
+
+        try {
+
+            String safeToken =
+                    JSONObject.quote(fcmToken);
+
+            String javascript =
+                    "fetch('/save_fcm_token.php', {" +
+                    "method: 'POST'," +
+                    "headers: {" +
+                    "'Content-Type': 'application/x-www-form-urlencoded'" +
+                    "}," +
+                    "body: 'token=' + encodeURIComponent(" +
+                    safeToken +
+                    ")" +
+                    "})" +
+                    ".then(response => response.json())" +
+                    ".then(data => {" +
+                    "console.log('FCM:', data);" +
+                    "})" +
+                    ".catch(error => {" +
+                    "console.log('FCM save error:', error);" +
+                    "});";
+
+            webView.evaluateJavascript(
+                    javascript,
+                    null
+            );
+
+        } catch (Exception e) {
+
+            e.printStackTrace();
+        }
+    }
+
+
+    /*
+    |--------------------------------------------------------------------------
+    | NOTIFICATION PERMISSION
+    |--------------------------------------------------------------------------
+    */
+
     private void requestNotificationPermission() {
 
-        if (Build.VERSION.SDK_INT >= 33 &&
+        if (
+                Build.VERSION.SDK_INT >= 33 &&
                 ContextCompat.checkSelfPermission(
                         this,
                         Manifest.permission.POST_NOTIFICATIONS
-                ) != PackageManager.PERMISSION_GRANTED) {
+                ) != PackageManager.PERMISSION_GRANTED
+        ) {
 
             ActivityCompat.requestPermissions(
                     this,
@@ -104,12 +206,22 @@ public class MainActivity extends AppCompatActivity {
         }
     }
 
+
+    /*
+    |--------------------------------------------------------------------------
+    | BACK BUTTON
+    |--------------------------------------------------------------------------
+    */
+
     @Override
     public void onBackPressed() {
 
         if (webView.canGoBack()) {
+
             webView.goBack();
+
         } else {
+
             super.onBackPressed();
         }
     }
