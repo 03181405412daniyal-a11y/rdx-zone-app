@@ -7,7 +7,6 @@ import android.content.Intent;
 import android.os.Build;
 
 import androidx.core.app.NotificationCompat;
-import androidx.core.app.NotificationManagerCompat;
 
 import com.google.firebase.messaging.FirebaseMessagingService;
 import com.google.firebase.messaging.RemoteMessage;
@@ -20,7 +19,7 @@ public class MyFirebaseMessagingService extends FirebaseMessagingService {
     public void onMessageReceived(RemoteMessage remoteMessage) {
 
         String title = "RDX ZONE";
-        String message = "آپ کے لیے نئی notification ہے۔";
+        String message = "New notification";
 
         if (remoteMessage.getNotification() != null) {
             if (remoteMessage.getNotification().getTitle() != null) {
@@ -32,19 +31,33 @@ public class MyFirebaseMessagingService extends FirebaseMessagingService {
             }
         }
 
-        createNotificationChannel();
+        showNotification(title, message);
+    }
+
+    private void showNotification(String title, String message) {
+
+        NotificationManager manager =
+                (NotificationManager) getSystemService(NOTIFICATION_SERVICE);
+
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+
+            NotificationChannel channel = new NotificationChannel(
+                    CHANNEL_ID,
+                    "RDX ZONE Notifications",
+                    NotificationManager.IMPORTANCE_HIGH
+            );
+
+            manager.createNotificationChannel(channel);
+        }
 
         Intent intent = new Intent(this, MainActivity.class);
-        intent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP);
 
         PendingIntent pendingIntent = PendingIntent.getActivity(
                 this,
                 0,
                 intent,
                 PendingIntent.FLAG_UPDATE_CURRENT |
-                        (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M
-                                ? PendingIntent.FLAG_IMMUTABLE
-                                : 0)
+                        PendingIntent.FLAG_IMMUTABLE
         );
 
         NotificationCompat.Builder builder =
@@ -52,31 +65,15 @@ public class MyFirebaseMessagingService extends FirebaseMessagingService {
                         .setSmallIcon(android.R.drawable.ic_dialog_info)
                         .setContentTitle(title)
                         .setContentText(message)
-                        .setContentIntent(pendingIntent)
+                        .setPriority(NotificationCompat.PRIORITY_HIGH)
                         .setAutoCancel(true)
-                        .setPriority(NotificationCompat.PRIORITY_HIGH);
+                        .setContentIntent(pendingIntent);
 
-        NotificationManagerCompat.from(this)
-                .notify((int) System.currentTimeMillis(), builder.build());
+        manager.notify((int) System.currentTimeMillis(), builder.build());
     }
 
-    private void createNotificationChannel() {
-
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-
-            NotificationChannel channel =
-                    new NotificationChannel(
-                            CHANNEL_ID,
-                            "RDX ZONE Notifications",
-                            NotificationManager.IMPORTANCE_HIGH
-                    );
-
-            NotificationManager manager =
-                    getSystemService(NotificationManager.class);
-
-            if (manager != null) {
-                manager.createNotificationChannel(channel);
-            }
-        }
+    @Override
+    public void onNewToken(String token) {
+        super.onNewToken(token);
     }
 }
