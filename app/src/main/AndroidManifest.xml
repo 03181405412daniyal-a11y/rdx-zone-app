@@ -9,6 +9,7 @@
     android:label="RDX ZONE"
     android:icon="@drawable/rdx_logo"
     android:theme="@style/Theme.RDXZone">
+    
             android:name=".MainActivity"
             android:exported="true">
 
