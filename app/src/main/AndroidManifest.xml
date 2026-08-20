@@ -8,7 +8,7 @@
         android:allowBackup="true"
         android:label="RDX ZONE"
         android:theme="@style/Theme.RDXZone">
-
+android:icon="@drawable/rdx_logo"
         <activity
             android:name=".MainActivity"
             android:exported="true">
